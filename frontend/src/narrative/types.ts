@@ -15,3 +15,11 @@ export type NarrativeSentence = {
 export type TraceableNarrative = {
   sentences: NarrativeSentence[];
 };
+
+export type NarrativeBundle = {
+  context: string;
+  optimization: string;
+  tradeoffs: string;
+  assumptions: string;
+  deferredCost: string;
+};
