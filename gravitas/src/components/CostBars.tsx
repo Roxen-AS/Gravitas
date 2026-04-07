@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { CostVector } from '../../lib/types'
 
-const COST_META = [
+const COST_META: { key: keyof CostVector; label: string; color: string }[] = [
   { key: 'cognitive',   label: 'Cognitive',   color: '#7f77dd' },
   { key: 'operational', label: 'Operational',  color: '#1d9e75' },
   { key: 'performance', label: 'Performance',  color: '#ef9f27' },
@@ -9,7 +10,7 @@ const COST_META = [
 ]
 
 interface Props {
-  costs: Record<string, number>
+  costs: CostVector
   animate?: boolean
 }
 
