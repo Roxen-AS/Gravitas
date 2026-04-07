@@ -23,8 +23,8 @@ export default function WhyTab({ event }: Props) {
     try {
       const refined = await refineNarrative(event)
       setNarrative(refined)
-    } catch {
-      alert('Refinement failed. Check your OpenAI key in environment variables.')
+    } catch (err: any) {
+      alert(`Refinement failed: ${err.message}`)
     } finally {
       setRefining(false)
     }
