@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
     return res.status(200).json({ events: rows })
   } catch (err) {
-    console.error('[GET /api/history]', err)
+    console.error('API error:', err)
     return res.status(500).json({ error: String(err) })
   }
 }

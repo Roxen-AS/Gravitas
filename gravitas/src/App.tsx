@@ -13,7 +13,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false)
   const { components, edgeData, loading, fetchGraph } = useGravitas()
 
-  // Collect events per component for cost dot display on nodes
+  // Get events for cost display
   const [allEvents, setAllEvents] = useState<Record<string, DecisionEvent[]>>({})
   useEffect(() => {
     if (components.length === 0) return

@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
     return res.status(201).json({ event })
   } catch (err) {
-    console.error('[POST /api/events]', err)
+    console.error('API error:', err)
     return res.status(500).json({ error: String(err) })
   }
 }

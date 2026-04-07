@@ -1,8 +1,4 @@
-/**
- * Local development API server.
- * Mirrors all Vercel serverless routes so `npm run dev` works end-to-end.
- * NOT used in production — Vercel handles routing there.
- */
+// Local dev server
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 dotenv.config({ path: '.env' })
@@ -10,7 +6,7 @@ dotenv.config({ path: '.env' })
 import express from 'express'
 import type { Request, Response } from 'express'
 
-// Import all handlers
+// Import handlers
 import eventsHandler      from './api/events/index'
 import historyHandler     from './api/history/index'
 import govGetHandler      from './api/governance/[decisionId]'
@@ -22,7 +18,7 @@ import healthHandler      from './api/health/index'
 const app = express()
 app.use(express.json())
 
-// Adapt Vercel's req/res shape to Express (they're compatible enough)
+// Wrap handlers for Express
 const wrap = (handler: Function) => (req: Request, res: Response) => handler(req, res)
 
 app.all('/api/events',               wrap(eventsHandler))

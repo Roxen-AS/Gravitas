@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
     return res.status(200).json({ governance: updated })
   } catch (err) {
-    console.error('[POST /api/governance/update]', err)
+    console.error('API error:', err)
     return res.status(500).json({ error: String(err) })
   }
 }

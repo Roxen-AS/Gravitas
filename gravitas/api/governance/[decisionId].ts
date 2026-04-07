@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       .where(eq(schema.governance.decisionId, decisionId))
     return res.status(200).json({ governance: rows[0] ?? null })
   } catch (err) {
-    console.error('[GET /api/governance]', err)
+    console.error('API error:', err)
     return res.status(500).json({ error: String(err) })
   }
 }

@@ -42,7 +42,7 @@ STRICT RULES:
     const refined = completion.choices[0]?.message?.content ?? rawText
     return res.status(200).json({ narrative: { ...base, refined } })
   } catch (err) {
-    console.error('[POST /api/narrative/refine]', err)
+    console.error('API error:', err)
     return res.status(500).json({ error: String(err) })
   }
 }
