@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import OpenAI from 'openai'
-import { generateNarrative } from '../../lib/narrative'
+import { generateNarrative } from '../../lib/narrative.js'
 import type { DecisionEvent } from '../../lib/types'
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
@@ -17,7 +17,12 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OpenAI API key is missing in environment variables' })
+    }
+
+    const openai = new OpenAI({ apiKey })
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 400,
