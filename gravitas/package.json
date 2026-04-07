@@ -2,6 +2,7 @@
   "name": "gravitas",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"tsx watch server.ts\" \"vite\"",
     "dev:api": "tsx watch server.ts",
