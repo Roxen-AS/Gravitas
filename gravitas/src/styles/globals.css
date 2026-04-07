@@ -83,6 +83,7 @@ input::placeholder, textarea::placeholder {
 
 /* React Flow overrides */
 .react-flow__background { background: var(--bg); }
+.react-flow__attribution { display: none !important; }
 .react-flow__controls {
   background: var(--bg3);
   border: 1px solid var(--border2);
