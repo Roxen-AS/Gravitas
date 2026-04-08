@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(url, {
       method: 'POST',
