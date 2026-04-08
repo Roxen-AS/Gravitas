@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { generateNarrative } from '../../lib/narrative'
-import type { DecisionEvent } from '../../lib/types'
+import { generateNarrative } from '../../lib/narrative.js'
+import type { DecisionEvent } from '../../lib/types.js'
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   res.setHeader('Access-Control-Allow-Origin', '*')
