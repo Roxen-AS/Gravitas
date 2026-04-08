@@ -95,7 +95,19 @@ export async function refineNarrative(event: DecisionEvent): Promise<Narrative> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(event),
   })
-  const d = await res.json()
-  if (!res.ok) throw new Error(d?.detail ?? d?.error ?? `HTTP ${res.status}`)
+
+  const text = await res.text()
+  if (!res.ok) {
+    let errorMessage = `HTTP ${res.status}`
+    try {
+      const d = JSON.parse(text)
+      errorMessage = d?.detail ?? d?.error ?? errorMessage
+    } catch {
+      errorMessage = text || errorMessage
+    }
+    throw new Error(errorMessage)
+  }
+
+  const d = JSON.parse(text)
   return d.narrative
 }
