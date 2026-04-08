@@ -17,11 +17,13 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     if (!apiKey) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not set in environment variables' })
     }
+    
+    console.log('[POST /api/narrative/refine] API key present:', !!apiKey, 'length:', apiKey.length)
 
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`
 
     const geminiRes = await fetch(url, {
       method: 'POST',
