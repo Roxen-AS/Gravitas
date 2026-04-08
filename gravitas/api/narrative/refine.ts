@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import OpenAI from 'openai'
-import { generateNarrative } from '../../lib/narrative.js'
+import { generateNarrative } from '../../lib/narrative'
 import type { DecisionEvent } from '../../lib/types'
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
@@ -17,37 +16,37 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      return res.status(500).json({ error: 'OpenAI API key is missing in environment variables' })
-    }
-
-    const openai = new OpenAI({ apiKey })
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 400,
-      messages: [
-        {
-          role: 'system',
-          content: `You are a technical writing assistant for an architecture decision record system.
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: `You are a technical writing assistant for an architecture decision record system called Gravitas.
 Your ONLY job is to improve the clarity and flow of a decision narrative.
 STRICT RULES:
 - Do NOT introduce any new facts, costs, or claims not present in the input
-- Do NOT add opinions ("good decision", "wise choice")
+- Do NOT add opinions like "good decision" or "wise choice"
 - Return ONLY the improved narrative as plain prose — no markdown, no headers
-- Keep roughly the same length as input`,
-        },
-        {
-          role: 'user',
-          content: `Refine this decision narrative. Do not introduce new facts:\n\n${rawText}`,
-        },
-      ],
-    })
+- Keep roughly the same length as the input` }]
+          },
+          contents: [{ parts: [{ text: `Refine this decision narrative. Do not introduce new facts:\n\n${rawText}` }] }],
+          generationConfig: { maxOutputTokens: 400, temperature: 0.3 }
+        }),
+      }
+    )
 
-    const refined = completion.choices[0]?.message?.content ?? rawText
+    if (!response.ok) {
+      const err = await response.text()
+      return res.status(500).json({ error: 'Gemini API call failed', detail: err })
+    }
+
+    const data = await response.json()
+    const refined = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? rawText
     return res.status(200).json({ narrative: { ...base, refined } })
   } catch (err) {
-    console.error('API error:', err)
+    console.error('[POST /api/narrative/refine]', err)
     return res.status(500).json({ error: String(err) })
   }
 }
