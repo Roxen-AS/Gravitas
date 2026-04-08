@@ -23,8 +23,9 @@ export default function WhyTab({ event }: Props) {
     try {
       const refined = await refineNarrative(event)
       setNarrative(refined)
-    } catch (err: any) {
-      alert(`Refinement failed: ${err.message}`)
+    } catch (e: any) {
+      const msg = e?.message ?? String(e)
+      alert('Refinement failed: ' + msg)
     } finally {
       setRefining(false)
     }
