@@ -22,8 +22,15 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     
     if (!event?.id) return res.status(400).json({ error: 'Full decision event required' })
 
-    const base = generateNarrative(event)
-    const rawText = base.sentences.map(s => s.text).join(' ')
+    let base: any
+    let rawText: string
+    try {
+      base = generateNarrative(event)
+      rawText = base.sentences.map((s: any) => s.text).join(' ')
+    } catch (genErr) {
+      console.error('[POST /api/narrative/refine] Failed to generate narrative:', genErr)
+      return res.status(500).json({ error: 'Failed to generate narrative', detail: String(genErr) })
+    }
 
     if (!process.env.GEMINI_API_KEY) {
       console.error('[POST /api/narrative/refine] GEMINI_API_KEY not set')
@@ -61,12 +68,24 @@ STRICT RULES:
     console.log('[POST /api/narrative/refine] Gemini responded with status:', response.status)
 
     if (!response.ok) {
-      const errText = await response.text()
+      let errText = ''
+      try {
+        errText = await response.text()
+      } catch {
+        errText = '(could not read error response)'
+      }
       console.error('[POST /api/narrative/refine] API error response:', errText)
       return res.status(500).json({ error: 'Gemini API call failed', status: response.status, detail: errText })
     }
 
-    const data = await response.json()
+    let data: any
+    try {
+      data = await response.json()
+    } catch (parseErr) {
+      console.error('[POST /api/narrative/refine] Failed to parse JSON response:', parseErr)
+      return res.status(500).json({ error: 'Failed to parse Gemini response', detail: String(parseErr) })
+    }
+    
     console.log('[POST /api/narrative/refine] Response structure:', JSON.stringify(data, null, 2).substring(0, 500))
     
     const refined = data?.candidates?.[0]?.content?.parts?.[0]?.text
@@ -78,9 +97,14 @@ STRICT RULES:
     console.log('[POST /api/narrative/refine] Success, returning refined narrative')
     return res.status(200).json({ narrative: { ...base, refined } })
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err)
-    const errStack = err instanceof Error ? err.stack : ''
-    console.error('[POST /api/narrative/refine] Exception:', errMsg, errStack)
-    return res.status(500).json({ error: 'Refinement failed', detail: errMsg })
+    try {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      const errStack = err instanceof Error ? err.stack : ''
+      console.error('[POST /api/narrative/refine] Exception:', errMsg, errStack)
+      return res.status(500).json({ error: 'Refinement failed', detail: errMsg })
+    } catch (sendErr) {
+      console.error('[POST /api/narrative/refine] Failed to send error response:', sendErr)
+      res.status(500).end('Internal server error')
+    }
   }
 }
