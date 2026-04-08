@@ -16,6 +16,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY environment variable not set' })
+    }
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
@@ -23,30 +27,44 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: `You are a technical writing assistant for an architecture decision record system called Gravitas.
+            parts: [{ 
+              text: `You are a technical writing assistant for an architecture decision record system called Gravitas.
 Your ONLY job is to improve the clarity and flow of a decision narrative.
 STRICT RULES:
 - Do NOT introduce any new facts, costs, or claims not present in the input
 - Do NOT add opinions like "good decision" or "wise choice"
 - Return ONLY the improved narrative as plain prose — no markdown, no headers
-- Keep roughly the same length as the input` }]
+- Keep roughly the same length as the input` 
+            }]
           },
-          contents: [{ parts: [{ text: `Refine this decision narrative. Do not introduce new facts:\n\n${rawText}` }] }],
+          contents: [{ 
+            parts: [{ 
+              text: `Refine this decision narrative. Do not introduce new facts:\n\n${rawText}` 
+            }] 
+          }],
           generationConfig: { maxOutputTokens: 400, temperature: 0.3 }
         }),
       }
     )
 
     if (!response.ok) {
-      const err = await response.text()
-      return res.status(500).json({ error: 'Gemini API call failed', detail: err })
+      const errText = await response.text()
+      console.error('[POST /api/narrative/refine] API error:', response.status, errText)
+      return res.status(500).json({ error: 'Gemini API call failed', status: response.status, detail: errText })
     }
 
     const data = await response.json()
-    const refined = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? rawText
+    console.log('[POST /api/narrative/refine] Response structure:', JSON.stringify(data, null, 2).substring(0, 500))
+    
+    const refined = data?.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!refined) {
+      console.error('[POST /api/narrative/refine] Unexpected response structure:', JSON.stringify(data, null, 2))
+      return res.status(500).json({ error: 'Unexpected Gemini response structure', response: data })
+    }
+
     return res.status(200).json({ narrative: { ...base, refined } })
   } catch (err) {
-    console.error('[POST /api/narrative/refine]', err)
-    return res.status(500).json({ error: String(err) })
+    console.error('[POST /api/narrative/refine] Exception:', err instanceof Error ? err.message : String(err), err instanceof Error ? err.stack : '')
+    return res.status(500).json({ error: 'Refinement failed', detail: err instanceof Error ? err.message : String(err) })
   }
 }
