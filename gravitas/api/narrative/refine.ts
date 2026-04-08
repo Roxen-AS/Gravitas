@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { generateNarrative } from '../../lib/narrative.js'
-import type { DecisionEvent } from '../../lib/types.js'
+import { generateNarrative } from '../../lib/narrative'
+import type { DecisionEvent } from '../../lib/types'
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -17,42 +17,52 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     if (!apiKey) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not set in environment variables' })
     }
-    
-    console.log('[POST /api/narrative/refine] API key present:', !!apiKey, 'length:', apiKey.length)
 
     const base = generateNarrative(event)
     const rawText = base.sentences.map(s => s.text).join(' ')
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`
 
-    const geminiRes = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are a technical writing assistant for an architecture decision record system called Gravitas.
+    const payload = JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `You are a technical writing assistant for an architecture decision record system called Gravitas.
 Your ONLY job is to improve the clarity and flow of the following decision narrative.
 RULES: Do NOT introduce new facts. Do NOT add opinions. Return ONLY plain prose, same length.
 
 Narrative to refine:
 ${rawText}`
-          }]
-        }],
-        generationConfig: {
-          maxOutputTokens: 400,
-          temperature: 0.3,
-        }
-      }),
+        }]
+      }],
+      generationConfig: {
+        maxOutputTokens: 400,
+        temperature: 0.3,
+      }
     })
 
-    const responseText = await geminiRes.text()
+    // Retry up to 3 times with exponential backoff on 429
+    let geminiRes: Response | null = null
+    let responseText = ''
 
-    if (!geminiRes.ok) {
-      console.error('[Gemini error]', geminiRes.status, responseText)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      geminiRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      })
+      responseText = await geminiRes.text()
+
+      if (geminiRes.status !== 429) break
+
+      console.warn(`[Gemini] 429 rate limit — attempt ${attempt}/3, waiting ${attempt * 2}s`)
+      await new Promise(r => setTimeout(r, attempt * 2000))
+    }
+
+    if (!geminiRes || !geminiRes.ok) {
+      console.error('[Gemini error]', geminiRes?.status, responseText)
       return res.status(500).json({
-        error: `Gemini API returned ${geminiRes.status}`,
-        detail: responseText
+        error: `Gemini API returned ${geminiRes?.status}`,
+        detail: responseText,
       })
     }
 
